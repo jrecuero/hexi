@@ -41,6 +41,7 @@
 
         gameScene = g.group();
         cannon = g.sprite("cannon.png");
+        cannon.draggable = true;
 
         g.arrowControl(cannon, 2);
         g.keyboard(32).press = function() {
@@ -75,7 +76,7 @@
         });
 
         music = g.sound("sounds/music.mp3");
-        music.play();
+        // music.play();
 
         shootSound = g.sound("sounds/shoot.mp3");
         shootSound.pan = -0.5
