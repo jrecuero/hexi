@@ -5,6 +5,20 @@
 	var cells = [];
 	var fromCell = undefined;
 	var toCell = undefined;
+	var message;
+
+	function Cell() {
+		this.initialize.apply(this, arguments);
+	}
+
+	Cell.prototype.constructor = Cell;
+
+	Cell.prototype.initialize = function(row, col, sprite) {
+		this.row = row;
+		this.col = col;
+		this.data = row + "-" + col;
+		this.sprite = sprite;
+	};
 
 	function init() {
 		PIXI.utils._saidHello = true;
@@ -19,17 +33,33 @@
 		return colors[index];
 	}
 
-	function buildCell(x, y) {
+	function createSprite(x, y) {
 		return g.rectangle(32, 32, getColor(), "black", 1, x, y);
 	}
 
+	function createCell(row, col) {
+		var sp = createSprite(32 * col, 32 * row);
+		return new Cell(row, col, sp);		
+	}
+
+	function checkHitCell(point, cell) {
+		if (g.hitTestPoint(point, cell.sprite)) {
+			message.content = "Pointer at Cell: " + cell.data;			
+			if (fromCell === undefined) {
+				fromCell = cell;
+			} else if (fromCell === toCell) {
+				fromCell = undefined;
+			} else {
+				toCell = cell;						
+			}
+		}
+	}
+
 	function setup() {
-		// g.text("Game Start", "32px Futura", "black", 16, 32);
 		g.state = play;
 		for (var r = 0; r < 5; r++) {
 			for (var c = 0; c < 5; c++) {
-				var sp = buildCell(32 * c, 32 * r);
-				cells.push({row: r, col: c, sprite: sp})
+				cells.push(createCell(r, c));
 			}
 		}
 
@@ -37,18 +67,11 @@
 			var p = {x: g.pointer.x, y: g.pointer.y}
 			console.log(p); 
 			for (var i in cells) {
-				var cell = cells[i];
-				if (g.hitTestPoint(p, cell.sprite)) {
-					if (fromCell === undefined) {
-						fromCell = cell;
-					} else if (fromCell === toCell) {
-						fromCell = undefined;
-					} else {
-						toCell = cell;						
-					}
-				}
+				checkHitCell(p, cells[i])
 			}
 		};
+
+		message = g.text("Pointer at Cell: ", "12px Menlo", "black", 0, 180);
 	}
 
 	function play() {
@@ -56,15 +79,9 @@
 			if (toCell === undefined) {
 				g.shake(fromCell.sprite, 0.10, true);
 			} else {
-				var fromX = fromCell.sprite.x;
-				var fromY = fromCell.sprite.y;
-				var toX = toCell.sprite.x;
-				var toY = toCell.sprite.y;
 				[fromCell.sprite, toCell.sprite] = [toCell.sprite, fromCell.sprite];
-				fromCell.sprite.x = fromX;
-				fromCell.sprite.y = fromY;
-				toCell.sprite.x = toX;
-				toCell.sprite.y = toY;
+				[fromCell.sprite.position, toCell.sprite.position] = 
+					[toCell.sprite.position, fromCell.sprite.position];
 				fromCell = undefined;
 				toCell = undefined;
 			}
