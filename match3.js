@@ -13,18 +13,12 @@
 
 	Cell.prototype.constructor = Cell;
 
-	Cell.prototype.initialize = function(row, col, sprite, data) {
+	Cell.prototype.initialize = function(row, col, sprite, data, moves) {
 		this.row = row;
 		this.col = col;
 		this.data = data;
 		this.sprite = sprite;
-		this.moves = {up: getMove(),
-					  right: getMove(),
-					  down: getMove(),
-					  left: getMove(),
-					  tostr: function() {
-					  	return (this.up + " " + this.right + " " + this.down + " " + this.left);
-					  }};
+		this.moves = moves;
 	};
 
 	Cell.prototype.equal = function(cell) {
@@ -86,6 +80,33 @@
 		return moves[index];
 	}
 
+	var drawMovePoints = { up: { move: [16, 10, 16, 2],
+								 fixed: [8, 6, 24, 6],
+								 none: undefined
+								},
+						   down: { move: [16, 22, 16, 30],
+						   		   fixed: [8, 26, 24, 26],
+						   		   none: undefined,
+						   		},
+						   left: { move: [10, 16, 2, 16],
+						   		   fixed: [6, 8, 6, 24],
+						   		   none: undefined,
+						   		},
+						   right: { move: [22, 16, 30, 16],
+						   		    fixed: [26, 8, 26, 24],
+						   		    none: undefined,
+						   		},
+						 };
+
+	function drawMove(row, col, side, move) {
+		var sp;
+		var d = drawMovePoints[side][move];
+		if (d) {
+			sp = g.line("black", 1, 32*col + d[0], 32*row + d[1], 32*col + d[2], 32*row + d[3]);
+		}
+		return sp;
+	}
+
 	function getColor() {
 		var colors = ["red", "yellow", "blue", "green", "cyan", "magenta", "purple"];
 		var index = g.randomInt(0, colors.length);
@@ -98,8 +119,41 @@
 
 	function createCell(row, col) {
 		var color = getColor();
-		var sp = createSprite(32 * col, 32 * row, color);
-		return new Cell(row, col, sp, color);
+		var sp = g.group();
+		var sp1 = g.rectangle(32, 32, color, "black", 1, 32 * col, 32 * row);
+		sp.addChild(sp1);
+		moves = {up: getMove(),
+				 right: getMove(),
+				 down: getMove(),
+				 left: getMove(),
+				 tostr: function() {
+				 	return (this.up + " " + this.right + " " + this.down + " " + this.left);
+				 }};
+		// var sp2 = g.line("black", 1, 32 * col + 16, 32 * row + 10, 32 * col + 16, 32 * row + 2);
+		// sp.addChild(sp2);
+		// var sp3 = g.line("black", 1, 32 * col + 16, 32 * row + 22, 32 * col + 16, 32 * row + 30);
+		// sp.addChild(sp3);
+		// var sp4 = g.line("black", 1, 32 * col + 10, 32 * row + 16, 32 * col + 2, 32 * row + 16);
+		// sp.addChild(sp4);
+		// var sp5 = g.line("black", 1, 32 * col + 22, 32 * row + 16, 32 * col + 30, 32 * row + 16);
+		// sp.addChild(sp5);
+		// var sp2 = g.line("black", 1, 32 * col + 6, 32 * row + 8, 32 * col + 6, 32 * row + 24);
+		// sp.addChild(sp2);
+		// var sp3 = g.line("black", 1, 32 * col + 26, 32 * row + 8, 32 * col + 26, 32 * row + 24);
+		// sp.addChild(sp3);
+		// var sp4 = g.line("black", 1, 32 * col + 8, 32 * row + 6, 32 * col + 24, 32 * row + 6);
+		// sp.addChild(sp4);
+		// var sp5 = g.line("black", 1, 32 * col + 8, 32 * row + 26, 32 * col + 24, 32 * row + 26);
+		// sp.addChild(sp5);
+		var sp1 = drawMove(row, col, 'up', moves.up);
+		if (sp1) sp.addChild(sp1);
+		sp1 = drawMove(row, col, 'down', moves.down);
+		if (sp1) sp.addChild(sp1);
+		sp1 = drawMove(row, col, 'left', moves.left);
+		if (sp1) sp.addChild(sp1);
+		sp1 = drawMove(row, col, 'right', moves.right);
+		if (sp1) sp.addChild(sp1);
+		return new Cell(row, col, sp, color, moves);
 	}
 
 	function checkHitCell(point, cell) {
