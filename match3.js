@@ -1,18 +1,27 @@
 (function() {
 	// var toLoad = [];
 
-	var g;
-	var gameBoard;
-	var fromCell;
-	var toCell;
+	var g;			// hexi instance
+	var gb;			// game board instance
 	var message;
 
+	/**
+	 * Cell class, it stores information for every board cell in the game.
+	 */
 	function Cell() {
 		this.initialize.apply(this, arguments);
 	}
 
 	Cell.prototype.constructor = Cell;
 
+	/**
+	 * Cell Class initialization method.
+	 * @param  {number} row    cell row value
+	 * @param  {number} col    cell column value
+	 * @param  {Sprite} sprite cell sprite instance
+	 * @param  {Object} data   cell custom data instance
+	 * @param  {Object} moves  cell possible moves instance
+	 */
 	Cell.prototype.initialize = function(row, col, sprite, data, moves) {
 		this.row = row;
 		this.col = col;
@@ -21,24 +30,49 @@
 		this.moves = moves;
 	};
 
+	/**
+	 * Cell class method to check equality between two cells.
+	 * @param  {Cell} cell othe cell instance
+	 * @return {boolean} true if cells are equal. false if cells are different.
+	 */
 	Cell.prototype.equal = function(cell) {
 		return (this.data === cell.data);
 	};
 
+	/**
+	 * Board Class, it stores all information related with the game board.
+	 */
 	function Board() {
 		this.initialize.apply(this, arguments);
 	}
 
 	Board.prototype.constructor = Board;
 
+	/**
+	 * Board Class initialization method.
+	 */
 	Board.prototype.initialize = function() {
 		this.board = [];
+		this.fromCell = undefined;
+		this.toCell = undefined;
+		this.neighborTween = undefined;
+		this.neighborCells = undefined;
 	};
 
+	/**
+	 * Board class method that adds a new cell to the game board.
+	 * @param {Cell} cell cell instance to add to the game board
+	 */
 	Board.prototype.addCell = function(cell) {
 		this.board.push(cell);
 	};
 
+	/**
+	 * Board class method that removes a cell from the game board at a given row
+	 * and column position.
+	 * @param  {number} row cell row value
+	 * @param  {number} col cell column value
+	 */
 	Board.prototype.removeCell = function(row, col) {
 		var cell = this.getCellFrom(row, col);
 		if (cell) {
@@ -47,39 +81,69 @@
 		}
 	};
 
+	/**
+	 * Board class method that retrieves a cell from the game board at a give
+	 * row and column position
+	 * @param  {number} row cell row value
+	 * @param  {number} col cell column value
+	 * @return {Array}     array with cells at the given position
+	 */
 	Board.prototype.getCellFrom = function(row, col) {
 		return this.board.filter(function(cell) {
 			return ((cell.row == row) && (cell.col == col));
 		});
 	};
 
+	/**
+	 * Board class method that retrieves all cell up, down, left and right for
+	 * the game board cell at the given row and column position.
+	 * @param  {number} row cell row position
+	 * @param  {number} col cell column position
+	 * @return {Array}     array with cells placed up, down, left and right
+	 */
 	Board.prototype.getNeighbors = function(row, col) {
 		var retCells = [];
 		var cell = this.getCellFrom(row-1, col);
-		if (cell) retCell.push(cell);
+		if (cell.length) retCells.push(cell[0]);
 		cell = this.getCellFrom(row+1, col);
-		if (cell) retCell.push(cell);
+		if (cell.length) retCells.push(cell[0]);
 		cell = this.getCellFrom(row, col-1);
-		if (cell) retCell.push(cell);
+		if (cell.length) retCells.push(cell[0]);
 		cell = this.getCellFrom(row, col+1);
-		if (cell) retCell.push(cell);
+		if (cell.length) retCells.push(cell[0]);
 		return retCells;
 	};
 
+	/**
+	 * Game Initialization function.
+	 * Initialized Hexi and load all resources required for the game.
+	 */
 	function init() {
 		PIXI.utils._saidHello = true;
-
-		gameBoard = new Board();
+		gb = new Board();
 		g = hexi(256, 256, setup);
 		g.start();
 	}
 
+	/**
+	 * Function that return a random move position.
+	 * Move position identifies what possible movement the cell is allowed to
+	 * take. It can allow movement in one direction (move), it can stop any
+	 * movement from other cell in that direction (fixed), or it can allow
+	 * movement from other cell in that direction, but not movement from that
+	 * cell in that direction (none).
+	 * @return {string} string with a random move
+	 */
 	function getMove() {
 		var moves = ["move", "move", "move", "move", "move", "none", "none", "fixed"];
 		var index = g.randomInt(0, moves.length);
 		return moves[index];
 	}
 
+	/**
+	 * Variable that stores values for drawing a sprite with defined moves.
+	 * @type {Object}
+	 */
 	var drawMovePoints = { up: { move: [16, 10, 16, 2],
 								 fixed: [8, 6, 24, 6],
 								 none: undefined
@@ -98,6 +162,14 @@
 						   		},
 						 };
 
+	/**
+	 * Function thar return a sprite with given move.
+	 * @param  {number} row  sprite row position value
+	 * @param  {number} col  sprite column position value
+	 * @param  {string} side sprite side value
+	 * @param  {string} move sprite move value
+	 * @return {Sprite}      sprite with move drawn
+	 */
 	function drawMove(row, col, side, move) {
 		var sp;
 		var d = drawMovePoints[side][move];
@@ -107,21 +179,27 @@
 		return sp;
 	}
 
+	/**
+	 * Function that returns a random color to be used to an sprite.
+	 * @return {string} random color value
+	 */
 	function getColor() {
 		var colors = ["red", "yellow", "blue", "green", "cyan", "magenta", "purple"];
 		var index = g.randomInt(0, colors.length);
 		return colors[index];
 	}
 
-	function createSprite(x, y, color) {
-		return g.rectangle(32, 32, color, "black", 1, x, y);
-	}
-
+	/**
+	 * Function that creates a cell to be inserted in the game board.
+	 * @param  {number} row cell row position value
+	 * @param  {number} col cell column position value
+	 * @return {Cell}     cell instance to be inserted in the game board
+	 */
 	function createCell(row, col) {
 		var color = getColor();
-		var sp = g.group();
+		// var sp = g.group();
 		var sp1 = g.rectangle(32, 32, color, "black", 1, 32 * col, 32 * row);
-		sp.addChild(sp1);
+		// sp.addChild(sp1);
 		moves = {up: getMove(),
 				 right: getMove(),
 				 down: getMove(),
@@ -129,80 +207,86 @@
 				 tostr: function() {
 				 	return (this.up + " " + this.right + " " + this.down + " " + this.left);
 				 }};
-		// var sp2 = g.line("black", 1, 32 * col + 16, 32 * row + 10, 32 * col + 16, 32 * row + 2);
-		// sp.addChild(sp2);
-		// var sp3 = g.line("black", 1, 32 * col + 16, 32 * row + 22, 32 * col + 16, 32 * row + 30);
-		// sp.addChild(sp3);
-		// var sp4 = g.line("black", 1, 32 * col + 10, 32 * row + 16, 32 * col + 2, 32 * row + 16);
-		// sp.addChild(sp4);
-		// var sp5 = g.line("black", 1, 32 * col + 22, 32 * row + 16, 32 * col + 30, 32 * row + 16);
-		// sp.addChild(sp5);
-		// var sp2 = g.line("black", 1, 32 * col + 6, 32 * row + 8, 32 * col + 6, 32 * row + 24);
-		// sp.addChild(sp2);
-		// var sp3 = g.line("black", 1, 32 * col + 26, 32 * row + 8, 32 * col + 26, 32 * row + 24);
-		// sp.addChild(sp3);
-		// var sp4 = g.line("black", 1, 32 * col + 8, 32 * row + 6, 32 * col + 24, 32 * row + 6);
-		// sp.addChild(sp4);
-		// var sp5 = g.line("black", 1, 32 * col + 8, 32 * row + 26, 32 * col + 24, 32 * row + 26);
-		// sp.addChild(sp5);
-		var sp1 = drawMove(row, col, 'up', moves.up);
-		if (sp1) sp.addChild(sp1);
-		sp1 = drawMove(row, col, 'down', moves.down);
-		if (sp1) sp.addChild(sp1);
-		sp1 = drawMove(row, col, 'left', moves.left);
-		if (sp1) sp.addChild(sp1);
-		sp1 = drawMove(row, col, 'right', moves.right);
-		if (sp1) sp.addChild(sp1);
-		return new Cell(row, col, sp, color, moves);
+		// sp1 = drawMove(row, col, 'up', moves.up);
+		// if (sp1) sp.addChild(sp1);
+		// sp1 = drawMove(row, col, 'down', moves.down);
+		// if (sp1) sp.addChild(sp1);
+		// sp1 = drawMove(row, col, 'left', moves.left);
+		// if (sp1) sp.addChild(sp1);
+		// sp1 = drawMove(row, col, 'right', moves.right);
+		// if (sp1) sp.addChild(sp1);
+		return new Cell(row, col, sp1, color, moves);
 	}
 
+	/**
+	 * Function that checks if the given point hits the given cell.
+	 * @param  {Object} point point instace
+	 * @param  {Cell} cell  cell instance
+	 */
 	function checkHitCell(point, cell) {
 		if (g.hitTestPoint(point, cell.sprite)) {
 			message.content = "Cell: " + cell.moves.tostr();
-			if (fromCell === undefined) {
-				fromCell = cell;
-			} else if (fromCell === toCell) {
-				fromCell = undefined;
+			if (gb.fromCell === undefined) {
+				gb.fromCell = cell;
+				gb.neighborCells = gb.getNeighbors(gb.fromCell.row, gb.fromCell.col);
+				gb.neighborTween = [];
+				for (var i in gb.neighborCells) {
+					gb.neighborTween.push(g.pulse(gb.neighborCells[i].sprite, 15, 0.25));
+				}
+			} else if (gb.fromCell === gb.toCell) {
+				gb.fromCell = undefined;
+				for (var i in gb.neighborTween) {
+					gb.neighborTween[i].end();
+				}
+			} else if (gb.neighborCells.includes(cell)) {
+				gb.toCell = cell;
 			} else {
-				toCell = cell;
+				console.log("Invalid selection!");
 			}
 		}
 	}
 
+	/**
+	 * Game setup function.
+	 */
 	function setup() {
 		g.state = play;
 		for (var r = 0; r < 5; r++) {
 			for (var c = 0; c < 5; c++) {
-				gameBoard.addCell(createCell(r, c));
+				gb.addCell(createCell(r, c));
 			}
 		}
 
 		g.pointer.tap = function() {
 			var p = {x: g.pointer.x, y: g.pointer.y};
 			console.log(p);
-			for (var i in gameBoard.board) {
-				checkHitCell(p, gameBoard.board[i]);
+			for (var i in gb.board) {
+				checkHitCell(p, gb.board[i]);
 			}
 		};
 
 		message = g.text("Cell: ", "12px Menlo", "black", 0, 180);
 	}
 
+	/**
+	 * Game play function.
+	 */
 	function play() {
-		if (fromCell !== undefined) {
-			if (toCell === undefined) {
-				g.shake(fromCell.sprite, 0.10, true);
+		if (gb.fromCell !== undefined) {
+			if (gb.toCell === undefined) {
+				g.shake(gb.fromCell.sprite, 0.10, true);
 			} else {
-				if (fromCell.equal(toCell)) {
+				if (gb.fromCell.equal(gb.toCell)) {
 					console.log('cells have the same color');
 				} else {
 					console.log('swapping cells');
-					[fromCell.sprite, toCell.sprite] = [toCell.sprite, fromCell.sprite];
-					[fromCell.sprite.position, toCell.sprite.position] =
-						[toCell.sprite.position, fromCell.sprite.position];
+					[gb.fromCell.sprite, gb.toCell.sprite] =
+						[gb.toCell.sprite, gb.fromCell.sprite];
+					[gb.fromCell.sprite.position, gb.toCell.sprite.position] =
+						[gb.toCell.sprite.position, gb.fromCell.sprite.position];
 				}
-				fromCell = undefined;
-				toCell = undefined;
+				gb.fromCell = undefined;
+				gb.toCell = undefined;
 			}
 		}
 	}
