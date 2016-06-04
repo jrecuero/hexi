@@ -39,6 +39,12 @@
 		return (this.data === cell.data);
 	};
 
+	Cell.prototype.allowSwap = function(cell, thisMove, cellMove) {
+		console.log('cell.' + thisMove + ': ' + this.moves[thisMove]);
+		console.log('othercell.' + cellMove + ': ' + cell.moves[cellMove]);
+		return ((this.moves[thisMove] == 'move') && (cell.moves[cellMove] != 'fixed'));
+	};
+
 	/**
 	 * Board Class, it stores all information related with the game board.
 	 */
@@ -104,13 +110,28 @@
 	Board.prototype.getNeighbors = function(row, col) {
 		var retCells = [];
 		var cell = this.getCellFrom(row-1, col);
-		if (cell.length) retCells.push(cell[0]);
+		retCells.push(cell[0]);
 		cell = this.getCellFrom(row+1, col);
-		if (cell.length) retCells.push(cell[0]);
+		retCells.push(cell[0]);
 		cell = this.getCellFrom(row, col-1);
-		if (cell.length) retCells.push(cell[0]);
+		retCells.push(cell[0]);
 		cell = this.getCellFrom(row, col+1);
-		if (cell.length) retCells.push(cell[0]);
+		retCells.push(cell[0]);
+		return retCells;
+	};
+
+	Board.prototype.getAllowedNeighbors = function(cell) {
+		var retCells = [];
+		var row = cell.row;
+		var col = cell.col;
+		var nCell = this.getCellFrom(row-1, col);
+		if (nCell[0] && cell.allowSwap(nCell[0], 'up', 'down')) retCells.push(nCell[0]);
+		nCell = this.getCellFrom(row+1, col);
+		if (nCell[0] && cell.allowSwap(nCell[0], 'down', 'up')) retCells.push(nCell[0]);
+		nCell = this.getCellFrom(row, col-1);
+		if (nCell[0] && cell.allowSwap(nCell[0], 'left', 'right')) retCells.push(nCell[0]);
+		nCell = this.getCellFrom(row, col+1);
+		if (nCell[0] && cell.allowSwap(nCell[0], 'right', 'left')) retCells.push(nCell[0]);
 		return retCells;
 	};
 
@@ -136,7 +157,7 @@
 	 */
 	function getMove() {
 		var moves = ["move", "move", "move", "move", "move", "none", "none", "fixed"];
-		var index = g.randomInt(0, moves.length);
+		var index = g.randomInt(0, moves.length - 1);
 		return moves[index];
 	}
 
@@ -228,16 +249,16 @@
 			message.content = "Cell: " + cell.moves.tostr();
 			if (gb.fromCell === undefined) {
 				gb.fromCell = cell;
-				gb.neighborCells = gb.getNeighbors(gb.fromCell.row, gb.fromCell.col);
+				// gb.neighborCells = gb.getNeighbors(gb.fromCell.row, gb.fromCell.col);
+				gb.neighborCells = gb.getAllowedNeighbors(gb.fromCell);
 				gb.neighborTween = [];
 				for (var i in gb.neighborCells) {
-					gb.neighborTween.push(g.pulse(gb.neighborCells[i].sprite, 15, 0.25));
+					if (gb.neighborCells[i]) {
+						gb.neighborTween.push(g.pulse(gb.neighborCells[i].sprite, 10));
+					}
 				}
 			} else if (gb.fromCell === gb.toCell) {
 				gb.fromCell = undefined;
-				for (var i in gb.neighborTween) {
-					gb.neighborTween[i].end();
-				}
 			} else if (gb.neighborCells.includes(cell)) {
 				gb.toCell = cell;
 			} else {
@@ -280,6 +301,17 @@
 					console.log('cells have the same color');
 				} else {
 					console.log('swapping cells');
+					var i;
+					for (i in gb.neighborCells) {
+						if (gb.neighborCells[i]) {
+							g.fadeIn(gb.neighborCells[i].sprite);
+						}
+					}
+					g.wait(100, function() {
+						for (var i in gb.neighborTween) {
+							g.removeTween(gb.neighborTween[i]);
+						}
+					});
 					[gb.fromCell.sprite, gb.toCell.sprite] =
 						[gb.toCell.sprite, gb.fromCell.sprite];
 					[gb.fromCell.sprite.position, gb.toCell.sprite.position] =
